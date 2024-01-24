@@ -11,8 +11,10 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+// Registrera Alla Controllers
 builder.Services.AddControllers();
 
+// Registrera ChatRepository som en Singleton, Singleton innebär att vi alltid får samma instans av ChatRepository
 builder.Services.AddSingleton<IChatRepository, ChatRepository>();
 
 var app = builder.Build();
@@ -31,6 +33,7 @@ else
 
 app.UseHttpsRedirection();
 
+// Mappa endpoints i alla controllers
 app.MapControllers();
 
 app.UseStaticFiles();
@@ -47,6 +50,7 @@ app.MapGet("all", async (IChatRepository repository) =>
     return await repository.GetAllAsync();
 });
 
+// Mappa Hubben som en endpoint
 app.MapHub<ChatHub>("/hubs/chatHub");
 
 app.Run();

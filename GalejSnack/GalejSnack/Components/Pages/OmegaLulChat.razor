@@ -2,40 +2,80 @@
 @using GalejSnack.DataAccess.Models
 @using GalejSnack.DataAccess.Services.Interfaces
 @using Microsoft.AspNetCore.SignalR.Client
-
+@* 
+    @rendermode låter oss styra vart komponenten ska renderas. 
+    InteractiveServer betyder att komponenten renderas på servern och skickas till klienten.
+*@
 @rendermode InteractiveServer
 
+@*
+@inject låter oss injecta olika saker till komponenten.
+    I det här fallet injectar vi NavigationManager och ChatRepository.
+    NavigationManager låter oss navigera till olika sidor, och är alltid registrerad per default.
+    ChatRepository låter oss hämta alla meddelanden från databasen.
+*@
 @inject NavigationManager NavigationManager
 @inject IChatRepository ChatRepository
 
 
 <h3>OmegaLulChat</h3>
-
-<EditForm FormName="Chat" Model="NewChatMessage" OnValidSubmit="SendMessage">
-    <InputText @bind-Value="NewChatMessage.Sender"></InputText>
-    <InputText @bind-Value="NewChatMessage.Message"></InputText>
-    <button class="btn btn-danger" type="submit">Send Message</button>
-</EditForm>
-
-<Virtualize Items="AllMessages.OrderByDescending(m=> m.Timestamp).ToList()" Context="message">
-    <div>
-        <p>@message.Sender</p>
-        <p>@message.Message</p>
-        <p>@message.Timestamp.ToLocalTime().ToString("HH:mm")</p>
+@* @bind-Value låter oss som namnet föreslår binda något till en property. 
+    I det här fallet är det värdet på inputfältet som binds till NewChatMessage.Sender.
+    Detta gör att när vi skriver i inputfältet så uppdateras värdet på NewChatMessage.Sender automatiskt.
+    OnValidSubmit låter oss köra en metod när formuläret är validerat.
+*@
+<EditForm Model="NewChatMessage" OnValidSubmit="SendMessage">
+    <DataAnnotationsValidator />
+    <div class="form-group">
+        <label>Name</label>
+        <InputText class="form-control" @bind-Value="NewChatMessage.Sender"></InputText>
     </div>
-</Virtualize>
+    <div class="form-group">
+        <label>Message</label>
+        <InputText class="form-control" @bind-Value="NewChatMessage.Message"></InputText>
+    </div>
+    <button class="btn btn-primary" type="submit">Send Message</button>
+</EditForm>
+<hr />
+<div class="col">
+    <Virtualize Items="AllMessages.OrderByDescending(m=>m.Timestamp).ToList()" Context="message">
+        <li class="card bg-gradient border-3">
+            <label class="card-header text-primary text-lg-start">@message.Sender</label>
+            <p class="card-body ">@message.Message</p>
+            <label class="card-footer text-primary text-lg-end">
+                @{
+                    if(message.Timestamp < DateTime.UtcNow.AddMinutes(-1))
+                    {
+                        <span>@message.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</span>
+                    }
+                    else if(message.Timestamp.ToString("HH:mm") == DateTime.UtcNow.ToString("HH:mm"))
+                    {
+                        <span>Now</span>
+                    }
+                    else
+                    {
+                        <span>@message.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+                    }
+                }
+            </label>
+        </li>
+    </Virtualize>
+</div>
 
 @code {
     private ChatMessage NewChatMessage { get; set; } = new();
     private List<ChatMessage> AllMessages { get; set; } = [];
     private HubConnection hubConnection;
 
+    // OnInitializedAsync körs när komponenten laddas in.
     protected override async Task OnInitializedAsync()
     {
+        // Skapar en hubconnection till vår chatHub.
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/chatHub"))
             .Build();
 
+        // Lägger till en metod som körs när vi får ett meddelande på hubben från servern.
         hubConnection.On<ChatMessage>("SendMessage", (message) =>
         {
             AllMessages.Add(message);
@@ -50,10 +90,11 @@
     private async Task SendMessage()
     {
         NewChatMessage.Timestamp = DateTime.UtcNow;
+        // Skickar meddelandet till servern.
         await hubConnection.SendAsync("SendMessage", NewChatMessage);
         NewChatMessage = new ChatMessage()
-            {
-                Sender = NewChatMessage.Sender
-            };
+        {
+            Sender = NewChatMessage.Sender
+        };
     }
 }

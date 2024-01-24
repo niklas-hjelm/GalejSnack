@@ -20,12 +20,14 @@ public class ChatRepository : IChatRepository
 
     public async Task<ChatMessage> GetByIdAsync(string id)
     {
-        return await _chatCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+        var filter = Builders<ChatMessage>.Filter.Eq(message => message.Id, id);
+        return await _chatCollection.Find(filter).FirstOrDefaultAsync();
     }
 
     public async Task<IEnumerable<ChatMessage>> GetAllAsync()
     {
-        return await _chatCollection.Find(x => true).ToListAsync();
+        var filter = Builders<ChatMessage>.Filter.Empty;
+        return await _chatCollection.Find(filter).ToListAsync();
     }
 
     public async Task AddAsync(ChatMessage entity)
@@ -35,11 +37,11 @@ public class ChatRepository : IChatRepository
 
     public async Task UpdateAsync(ChatMessage entity)
     {
-        await _chatCollection.ReplaceOneAsync(x => x.Id == entity.Id, entity);
+        await _chatCollection.ReplaceOneAsync(message => message.Id == entity.Id, entity);
     }
 
     public async Task DeleteAsync(string id)
     {
-        await _chatCollection.DeleteOneAsync(x => x.Id == id);
+        await _chatCollection.DeleteOneAsync(message => message.Id == id);
     }
 }
