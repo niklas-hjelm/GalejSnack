@@ -9,9 +9,9 @@ public class ChatRepository : IChatRepository
 
     public ChatRepository()
     {
-        var connectionString = "";
-        var databaseName = "";
-        var collectionName = "";
+        var connectionString = "mongodb://localhost:27017";
+        var databaseName = "TestChat";
+        var collectionName = "Bös";
 
         var mongoClient = new MongoClient(connectionString);
         var mongoDatabase = mongoClient.GetDatabase(databaseName);

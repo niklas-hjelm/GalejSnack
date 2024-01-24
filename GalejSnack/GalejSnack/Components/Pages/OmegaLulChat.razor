@@ -1,0 +1,59 @@
+﻿@page "/chat"
+@using GalejSnack.DataAccess.Models
+@using GalejSnack.DataAccess.Services.Interfaces
+@using Microsoft.AspNetCore.SignalR.Client
+
+@rendermode InteractiveServer
+
+@inject NavigationManager NavigationManager
+@inject IChatRepository ChatRepository
+
+
+<h3>OmegaLulChat</h3>
+
+<EditForm FormName="Chat" Model="NewChatMessage" OnValidSubmit="SendMessage">
+    <InputText @bind-Value="NewChatMessage.Sender"></InputText>
+    <InputText @bind-Value="NewChatMessage.Message"></InputText>
+    <button class="btn btn-danger" type="submit">Send Message</button>
+</EditForm>
+
+<Virtualize Items="AllMessages.OrderByDescending(m=> m.Timestamp).ToList()" Context="message">
+    <div>
+        <p>@message.Sender</p>
+        <p>@message.Message</p>
+        <p>@message.Timestamp.ToLocalTime().ToString("HH:mm")</p>
+    </div>
+</Virtualize>
+
+@code {
+    private ChatMessage NewChatMessage { get; set; } = new();
+    private List<ChatMessage> AllMessages { get; set; } = [];
+    private HubConnection hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/chatHub"))
+            .Build();
+
+        hubConnection.On<ChatMessage>("SendMessage", (message) =>
+        {
+            AllMessages.Add(message);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+
+        AllMessages.AddRange(await ChatRepository.GetAllAsync());
+    }
+
+    private async Task SendMessage()
+    {
+        NewChatMessage.Timestamp = DateTime.UtcNow;
+        await hubConnection.SendAsync("SendMessage", NewChatMessage);
+        NewChatMessage = new ChatMessage()
+            {
+                Sender = NewChatMessage.Sender
+            };
+    }
+}

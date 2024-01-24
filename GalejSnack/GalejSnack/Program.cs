@@ -1,5 +1,8 @@
 using GalejSnack.Client.Pages;
 using GalejSnack.Components;
+using GalejSnack.DataAccess.Services;
+using GalejSnack.DataAccess.Services.Interfaces;
+using GalejSnack.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+
+builder.Services.AddControllers();
+
+builder.Services.AddSingleton<IChatRepository, ChatRepository>();
 
 var app = builder.Build();
 
@@ -24,6 +31,8 @@ else
 
 app.UseHttpsRedirection();
 
+app.MapControllers();
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 
@@ -31,5 +40,13 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(Counter).Assembly);
+
+//Exempel som är samma funktionalitet som /api/chat/all i ChatController 
+app.MapGet("all", async (IChatRepository repository) =>
+{
+    return await repository.GetAllAsync();
+});
+
+app.MapHub<ChatHub>("/hubs/chatHub");
 
 app.Run();
