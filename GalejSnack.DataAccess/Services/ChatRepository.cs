@@ -20,26 +20,26 @@ public class ChatRepository : IChatRepository
 
     public async Task<ChatMessage> GetByIdAsync(string id)
     {
-        throw new NotImplementedException();
+        return await _chatCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
     }
 
     public async Task<IEnumerable<ChatMessage>> GetAllAsync()
     {
-        throw new NotImplementedException();
+        return await _chatCollection.Find(x => true).ToListAsync();
     }
 
     public async Task AddAsync(ChatMessage entity)
     {
-        throw new NotImplementedException();
+        await _chatCollection.InsertOneAsync(entity);
     }
 
     public async Task UpdateAsync(ChatMessage entity)
     {
-        throw new NotImplementedException();
+        await _chatCollection.ReplaceOneAsync(x => x.Id == entity.Id, entity);
     }
 
     public async Task DeleteAsync(string id)
     {
-        throw new NotImplementedException();
+        await _chatCollection.DeleteOneAsync(x => x.Id == id);
     }
 }
